@@ -4,6 +4,40 @@ import { Rasterizer } from './rasterizer.js';
 function lerpColor([r1, g1, b1], [r2, g2, b2], t) {
   return [r1 * (1 - t) + r2 * t, g1 * (1 - t) + g2 * t, b1 * (1 - t) + b2 * t];
 }
+
+function edgeFunction(v0, v1, p) {
+  const [x0, y0] = v0;
+  const [x1, y1] = v1;
+  const [x, y] = p;
+
+  const a = y1 - y0;
+  const b = x0 - x1;
+  const c = x1 * y0 - x0 * y1;
+
+  return a * x + b * y + c;
+}
+
+function pointIsInsideTriangle(v1, v2, v3, p) {
+  const e1 = edgeFunction(v1, v2, p);
+  const e2 = edgeFunction(v2, v3, p);
+  const e3 = edgeFunction(v3, v1, p);
+
+  const pass1 = (e1 > 0) || (e1 === 0 && isTopLeft(v1, v2));
+  const pass2 = (e2 > 0) || (e2 === 0 && isTopLeft(v2, v3));
+  const pass3 = (e3 > 0) || (e3 === 0 && isTopLeft(v3, v1));
+
+  return pass1 && pass2 && pass3;
+}
+
+function isTopLeft(v0, v1) {
+  const [xStart, yStart] = v0;
+  const [xEnd, yEnd] = v1;
+
+  const isLeftEdge = (yEnd > yStart);
+  const isTopEdge = (yEnd === yStart) && (xEnd < xStart);
+
+  return isLeftEdge || isTopEdge;
+}
 ////////////////////////////////////////////////////////////////////////////////
 // TODO: Implement functions drawLine(v1, v2) and drawTriangle(v1, v2, v3) below.
 ////////////////////////////////////////////////////////////////////////////////
@@ -55,10 +89,19 @@ Rasterizer.prototype.drawTriangle = function (v1, v2, v3) {
   const [x1, y1, [r1, g1, b1]] = v1;
   const [x2, y2, [r2, g2, b2]] = v2;
   const [x3, y3, [r3, g3, b3]] = v3;
-  // TODO/HINT: use this.setPixel(x, y, color) in this function to draw triangle
-  this.setPixel(Math.floor(x1), Math.floor(y1), [r1, g1, b1]);
-  this.setPixel(Math.floor(x2), Math.floor(y2), [r2, g2, b2]);
-  this.setPixel(Math.floor(x3), Math.floor(y3), [r3, g3, b3]);
+
+  const xMin = Math.max(Math.ceil(Math.min(x1, x2, x3)), 0);
+  const xMax = Math.min(Math.ceil(Math.max(x1, x2, x3)), this.framebuffer.pixelsWide - 1);
+  const yMin = Math.max(Math.ceil(Math.min(y1, y2, y3)), 0);
+  const yMax = Math.min(Math.ceil(Math.max(y1, y2, y3)), this.framebuffer.pixelsWide - 1);
+
+  for (let y = yMin; y <= yMax; ++y) {
+    for (let x = xMin; x <= xMax; ++x) {
+      if (pointIsInsideTriangle(v1, v2, v3, [x, y])) {
+        this.setPixel(x, y, [r1, g1, b1]);
+      }
+    }
+  }
 };
 
 ////////////////////////////////////////////////////////////////////////////////
