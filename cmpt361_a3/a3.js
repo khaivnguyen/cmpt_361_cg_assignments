@@ -38,6 +38,19 @@ function isTopLeft(v0, v1) {
 
   return isLeftEdge || isTopEdge;
 }
+
+function barycentricCoordinates(v1, v2, v3, p) {
+  const e1 = edgeFunction(v1, v2, p);
+  const e2 = edgeFunction(v2, v3, p);
+  const e3 = edgeFunction(v3, v1, p);
+  const sum = e1 + e2 + e3;
+
+  const w1 = e2 / sum;
+  const w2 = e3 / sum;
+  const w3 = e1 / sum;
+
+  return [w1, w2, w3];
+}
 ////////////////////////////////////////////////////////////////////////////////
 // TODO: Implement functions drawLine(v1, v2) and drawTriangle(v1, v2, v3) below.
 ////////////////////////////////////////////////////////////////////////////////
@@ -98,7 +111,11 @@ Rasterizer.prototype.drawTriangle = function (v1, v2, v3) {
   for (let y = yMin; y <= yMax; ++y) {
     for (let x = xMin; x <= xMax; ++x) {
       if (pointIsInsideTriangle(v1, v2, v3, [x, y])) {
-        this.setPixel(x, y, [r1, g1, b1]);
+        const [w1, w2, w3] = barycentricCoordinates(v1, v2, v3, [x, y]);
+        const r = w1 * r1 + w2 * r2 + w3 * r3;
+        const g = w1 * g1 + w2 * g2 + w3 * g3;
+        const b = w1 * b1 + w2 * b2 + w3 * b3;
+        this.setPixel(x, y, [r, g, b]);
       }
     }
   }
